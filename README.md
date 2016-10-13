@@ -1,11 +1,11 @@
-# Cyclic Android View Pager implementation
+# Сircular scrolling view implementation for Android instead ViewPager hacks
 
 ###Features
-- Cyclic scroll views
+- Сircular scrolling views
 - Can use fragments from support repository
 - Can implement custom adapter
-- Do not duplicate first and last views, used bitmap variants instead
-- Cyclic works with 1, 2 or more views
+- Does not duplicate first and last views as analogues, uses bitmap variants instead
+- Сircular scrolling works with 1, 2 or more views
 - Scrolling stops if next element is null
 - View caching, remove old views for free memory
 
