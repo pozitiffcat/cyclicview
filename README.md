@@ -89,9 +89,13 @@ public class MainActivity extends AppCompatActivity {
 ```
 ###Available methods: 
 `setAdapter(CyclicAdapter)` for setup a adapter 
+
 `setCurrentPosition(int)` for switch current position 
+
 `refreshViewsAroundCurrent()` for reload null views around current position 
+
 `addOnPositionChangeListener(CyclicView.OnPositionChangeListener)` for observe CyclicView on position change 
+
 
 ### How add to project
 Add it to your build.gradle with:
