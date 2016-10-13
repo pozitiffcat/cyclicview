@@ -1,11 +1,11 @@
-# Сircular scrolling view implementation for Android instead ViewPager hacks
+# Сircual scrolling view implementation for Android instead ViewPager hacks
 
 ###Features
-- Сircular scrolling views
+- Сircual scrolling views
 - Can use fragments from support repository
 - Can implement custom adapter
 - Does not duplicate first and last views as analogues, uses bitmap variants instead
-- Сircular scrolling works with 1, 2 or more views
+- Сircual scrolling works with 1, 2 or more views
 - Scrolling stops if next element is null
 - View caching, remove old views for free memory
 
