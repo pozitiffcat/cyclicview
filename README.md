@@ -1,13 +1,101 @@
-# android-example
+# Cyclic Android View Pager implementation
 
-[![Release](https://img.shields.io/github/release/jitpack/android-example.svg?label=Jitpack)](https://jitpack.io/#jitpack/android-example)
+###Features
+- Cyclic scroll views
+- Can use fragments from support repository
+- Can implement custom adapter
+- Do not duplicate first and last views, used bitmap variants instead
+- Cyclic works with 1, 2 or more views
+- Scrolling stops if next element is null
+- View caching, remove old views for free memory
 
-Example Android library project that works with jitpack.io.
-Also see the guide for [building Android projects](https://github.com/jitpack/jitpack.io/blob/master/ANDROID.md)
+### Simple example
+After create CyclicView your should set adapter
 
-https://jitpack.io/#jitpack/android-example
+```java
+public class MainActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
+        CyclicView cyclicView = (CyclicView) findViewById(R.id.cyclic_view);
+        cyclicView.setAdapter(new CyclicAdapter() {
+            @Override
+            public int getItemsCount() {
+                return 10;
+            }
+
+            @Override
+            public View createView(int position) {
+                TextView textView = new TextView(MainActivity.this);
+                textView.setText(String.format("TextView #%d", position + 1));
+                return textView;
+            }
+
+            @Override
+            public void removeView(int position, View view) {
+                // Do nothing
+            }
+        });
+    }
+}
+```
+###Simple example with support fragments
+
+```java
+public class MainActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        CyclicView cyclicView = (CyclicView) findViewById(R.id.cyclic_view);
+        cyclicView.setAdapter(new CyclicFragmentAdapter(this, getSupportFragmentManager()) {
+            @Override
+            public int getItemsCount() {
+                return 10;
+            }
+
+            @Override
+            protected Fragment createFragment(int position) {
+                String text = String.format("TextView #%d", position + 1);
+                return TextFragment.newInstance(text);
+            }
+        });
+    }
+
+    public static class TextFragment extends Fragment {
+        private static final String TEXT_ARG = "TEXT_ARG";
+
+        public static Fragment newInstance(String text) {
+            Bundle args = new Bundle();
+            args.putString(TEXT_ARG, text);
+            Fragment fragment = new TextFragment();
+            fragment.setArguments(args);
+            return fragment;
+        }
+
+        @Nullable
+        @Override
+        public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+            String text = getArguments().getString(TEXT_ARG);
+            TextView textView = new TextView(getContext());
+            textView.setText(text);
+            return textView;
+        }
+    }
+}
+```
+###Available methods: 
+`setAdapter(CyclicAdapter)` for setup a adapter 
+`setCurrentPosition(int)` for switch current position 
+`refreshViewsAroundCurrent()` for reload null views around current position 
+`addOnPositionChangeListener(CyclicView.OnPositionChangeListener)` for observe CyclicView on position change 
+
+### How add to project
 Add it to your build.gradle with:
+
 ```gradle
 allprojects {
     repositories {
@@ -16,37 +104,11 @@ allprojects {
 }
 ```
 and:
-
 ```gradle
 dependencies {
-    compile 'com.github.jitpack:android-example:{latest version}'
+    compile 'com.github.pozitiffcat:cyclicview:1.0.1'
 }
 ```
 
-## Multiple build variants
 
-If your library uses multiple flavours then see this example:
-https://github.com/jitpack-io/android-jitpack-library-example
 
-## Adding the maven plugin
-
-To enable installing into local maven repository and JitPack you need to add the [android-maven](https://github.com/dcendents/android-maven-gradle-plugin) plugin:
-
-1. Add `classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'` to root build.gradle under `buildscript { dependencies {`
-2. Add `com.github.dcendents.android-maven` to the library/build.gradle
-
-After these changes you should be able to run:
-
-    ./gradlew install
-    
-from the root of your project. If install works and you have added a GitHub release it should work on jitpack.io
-
-## Adding a sample app 
-
-If you add a sample app to the same repo then your app needs to have a dependency on the library. To do this in your app/build.gradle add:
-
-```gradle
-    dependencies {
-        compile project(':library')
-    }
-```

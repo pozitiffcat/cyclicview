@@ -21,6 +21,13 @@ android {
     }
 }
 
+task createJavadocs (type: Javadoc) {
+    source = project.android.sourceSets.main.java.srcDirs
+    options.linkSource true
+    classpath += project.files(project.android.getBootClasspath().join(File.pathSeparator))
+    failOnError false
+}
+
 dependencies {
     compile 'com.android.support:appcompat-v7:24.2.1'
 }
