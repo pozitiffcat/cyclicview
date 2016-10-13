@@ -1,0 +1,376 @@
+package org.malcdevelop.cyclicview;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * A cyclic view pager
+ *
+ * @author Malchenko Alexey <pozitiffcat2@gmal.com>
+ */
+public class CyclicView extends ViewGroup {
+    private final Set<OnPositionChangeListener> onPositionChangeListeners = new HashSet<>();
+    private int currentPosition;
+    private ImageView lastViewRenderImageView;
+    private ImageView firstViewRenderImageView;
+    private final List<View> views = new ArrayList<>();
+    private CyclicAdapter adapter;
+    private float offsetX;
+    private float touchX;
+    private boolean isScrolling;
+    private int touchSlop;
+    private int maxCacheAroundCurrent = 3;
+
+    public CyclicView(Context context) {
+        super(context);
+        init();
+    }
+
+    public CyclicView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init();
+    }
+
+    private void init() {
+        retrieveTouchSlop();
+        createRenderImageViews();
+    }
+
+    /**
+     * setup elements count on left side and on right side
+     * @param count should be greater or equals than one
+     */
+    public void setMaxCacheAroundCurrent(int count) {
+        this.maxCacheAroundCurrent = Math.max(1, count);
+    }
+
+    /**
+     * setup adapter and create views around current position
+     * uses adapter for create views
+     * @param adapter
+     */
+    public void setAdapter(CyclicAdapter adapter) {
+        this.adapter = adapter;
+        if (adapter.getItemsCount() != 0) {
+            createViewsList();
+            createViewAndSetIfNotExistsAround(currentPosition);
+        }
+    }
+
+    /**
+     * switch page to new position
+     * @param position
+     */
+    public void setCurrentPosition(int position) {
+        int width = getMeasuredWidth();
+        boolean isViewMeasured = width != 0;
+        if (!isViewMeasured) {
+            currentPosition = position;
+            postCurrentPosition(position);
+            return;
+        }
+
+        position = cyclicPositionAt(position);
+        setOffsetXOfPosition(position);
+
+        currentPosition = position;
+        createViewAndSetIfNotExistsAround(currentPosition);
+        notifyOnPositionChangeListener(currentPosition);
+    }
+
+    /**
+     * current selected position
+     * @return
+     */
+    public int getCurrentPosition() {
+        return currentPosition;
+    }
+
+    /**
+     * calculates position use cyclic algorithm
+     * @param position raw position eg. -1 or over items count
+     * @return calculated position eg. last position instead -1
+     */
+    public int cyclicPositionAt(int position) {
+        int itemsCount = adapter.getItemsCount();
+        position = position < 0 ? itemsCount + position : position;
+        position = position >= itemsCount ? position - itemsCount : position;
+        return position;
+    }
+
+    /**
+     * create views around current if they is null
+     * uses adapter for create views
+     */
+    public void refreshViewsAroundCurrent() {
+        createViewAndSetIfNotExistsAround(currentPosition);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+
+        int viewsCount = views.size();
+        for (int i = 0; i < viewsCount; ++i) {
+            View view = views.get(i);
+            if (view != null)
+                measureChild(view, widthMeasureSpec, heightMeasureSpec);
+        }
+
+        measureChild(lastViewRenderImageView, widthMeasureSpec, heightMeasureSpec);
+        measureChild(firstViewRenderImageView, widthMeasureSpec, heightMeasureSpec);
+        setMeasuredDimension(width, height);
+    }
+
+    @Override
+    protected void onLayout(boolean c, int l, int t, int r, int b) {
+        int viewsCount = views.size();
+        layoutViewOnPosition(lastViewRenderImageView, -1);
+        layoutViewOnPosition(firstViewRenderImageView, viewsCount);
+        for (int i = 0; i < viewsCount; ++i) {
+            View view = views.get(i);
+            if (view != null)
+                layoutViewOnPosition(view, i);
+        }
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        final int action = event.getAction();
+
+        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
+            isScrolling = false;
+            return false;
+        }
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                touchX = event.getX();
+                prepareFirstAndLastImages();
+                isScrolling = false;
+                break;
+            case MotionEvent.ACTION_MOVE: {
+                if (isScrolling)
+                    return true;
+
+                final int xDiff = (int) Math.abs(event.getX() - touchX);
+                if (xDiff > touchSlop) {
+                    isScrolling = true;
+                    return true;
+                }
+
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                touchX = event.getX();
+                prepareFirstAndLastImages();
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                float eX = event.getX();
+                float deltaX = eX - touchX;
+                touchX = eX;
+
+                if (canOffsetX(deltaX))
+                    offsetX += deltaX;
+
+                requestLayout();
+                return true;
+            case MotionEvent.ACTION_UP:
+                animateScrollToCloserPosition();
+                return true;
+        }
+
+        return false;
+    }
+
+    private void prepareFirstAndLastImages() {
+        Bitmap firstBitmap = captureImageFromView(adapter.getItemsCount() - 1);
+        Bitmap lastBitmap = captureImageFromView(0);
+        lastViewRenderImageView.setImageBitmap(firstBitmap);
+        firstViewRenderImageView.setImageBitmap(lastBitmap);
+    }
+
+    private void createViewAndSetIfNotExistsAround(int position) {
+        int previousPosition = cyclicPositionAt(position - 1);
+        int nextPosition = cyclicPositionAt(position + 1);
+        createViewAndSetIfNotExists(previousPosition);
+        createViewAndSetIfNotExists(currentPosition);
+        createViewAndSetIfNotExists(nextPosition);
+    }
+
+    private void createViewAndSetIfNotExists(int position) {
+        View view = views.get(position);
+        if (view != null)
+            return;
+
+        view = adapter.createView(position);
+        if (view == null)
+            return;
+
+        views.set(position, view);
+        addView(view, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        removeAvailableCachedItems();
+    }
+
+    private void removeAvailableCachedItems() {
+        int maxCachedItems = maxCacheAroundCurrent * 2 + 1;
+        boolean cacheAvailable = maxCachedItems < adapter.getItemsCount();
+        if (!cacheAvailable)
+            return;
+
+        int previousPosition = cyclicPositionAt(currentPosition - maxCachedItems);
+        int nextPosition = cyclicPositionAt(currentPosition + maxCachedItems);
+        removeCachedViewIfExists(previousPosition);
+        removeCachedViewIfExists(nextPosition);
+    }
+
+    private void removeCachedViewIfExists(int position) {
+        View view = views.get(position);
+        if (view != null) {
+            adapter.removeView(position, view);
+            removeView(view);
+            views.set(position, null);
+        }
+    }
+
+    private void layoutViewOnPosition(View view, int position) {
+        int width = getMeasuredWidth();
+        int height = getMeasuredHeight();
+        int viewOffset = (int) (offsetX + width * position);
+        view.layout(viewOffset, 0, viewOffset + width, height);
+    }
+
+    private void setOffsetXOfPosition(int position) {
+        int width = getMeasuredWidth();
+        offsetX = -width * (position);
+        requestLayout();
+    }
+
+    private boolean canOffsetX(float deltaX) {
+        offsetX += deltaX;
+        int toPosition = cyclicPositionAt(calculateScrollToPosition(0));
+        View toView = views.get(toPosition);
+        offsetX -= deltaX;
+        return toView != null;
+    }
+
+    private void animateScrollToCloserPosition() {
+        final int width = getMeasuredWidth();
+        final int toPosition = calculateScrollToPosition(width / 3.0f);
+        final float startX = offsetX;
+        final float stopX = -(toPosition * width);
+
+        post(new Runnable() {
+            private float frame = 0.0f;
+
+            @Override
+            public void run() {
+                frame += 0.1f;
+                offsetX = startX + (stopX - startX) * frame;
+                requestLayout();
+
+                if (frame >= 1.0f) {
+                    setCurrentPosition(toPosition);
+                } else {
+                    post(this);
+                }
+            }
+        });
+    }
+
+    private void postCurrentPosition(final int position) {
+        post(new Runnable() {
+            @Override
+            public void run() {
+                setCurrentPosition(position);
+            }
+        });
+    }
+
+    private int calculateScrollToPosition(float factor) {
+        switch (calculateScrollDirection(factor)) {
+            case -1:
+                return currentPosition - 1;
+            case 1:
+                return currentPosition + 1;
+        }
+
+        return currentPosition;
+    }
+
+    private int calculateScrollDirection(float factor) {
+        int width = getMeasuredWidth();
+        float currentPositionOffsetX = -(width * currentPosition);
+
+        if (Math.abs(offsetX - currentPositionOffsetX) < factor)
+            return 0;
+        else
+            return offsetX > currentPositionOffsetX ? -1 : 1;
+    }
+
+    private void createViewsList() {
+        views.addAll(Collections.<View>nCopies(adapter.getItemsCount(), null));
+    }
+
+    private void retrieveTouchSlop() {
+        ViewConfiguration vc = ViewConfiguration.get(getContext());
+        touchSlop = vc.getScaledTouchSlop();
+    }
+
+    private void createRenderImageViews() {
+        lastViewRenderImageView = new ImageView(getContext());
+        firstViewRenderImageView = new ImageView(getContext());
+        addView(lastViewRenderImageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        addView(firstViewRenderImageView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+    }
+
+    private Bitmap captureImageFromView(int position) {
+        View view = views.get(position);
+        if (view == null)
+            return null;
+
+        Bitmap bitmap = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_4444);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    public void addOnPositionChangeListener(OnPositionChangeListener listener) {
+        onPositionChangeListeners.add(listener);
+    }
+
+    public void removeOnPositionChangeListener(OnPositionChangeListener listener) {
+        onPositionChangeListeners.add(listener);
+    }
+
+    private void notifyOnPositionChangeListener(int position) {
+        for (OnPositionChangeListener listener : onPositionChangeListeners)
+            listener.onPositionChange(position);
+    }
+
+    public interface OnPositionChangeListener {
+        void onPositionChange(int position);
+    }
+}
