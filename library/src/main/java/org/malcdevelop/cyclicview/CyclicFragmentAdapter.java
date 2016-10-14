@@ -9,7 +9,7 @@ import android.widget.FrameLayout;
 /**
  * A cyclic fragment adapter for cyclic view pager
  *
- * @author Malchenko Alexey <pozitiffcat2@gmal.com>
+ * @author Malchenko Alexey "pozitiffcat2@gmail.com"
  */
 public abstract class CyclicFragmentAdapter extends CyclicAdapter {
     private final Context context;

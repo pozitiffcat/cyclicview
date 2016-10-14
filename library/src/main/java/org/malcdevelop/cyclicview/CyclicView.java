@@ -19,7 +19,7 @@ import java.util.Set;
 /**
  * A cyclic view pager
  *
- * @author Malchenko Alexey <pozitiffcat2@gmal.com>
+ * @author Malchenko Alexey "pozitiffcat2@gmail.com"
  */
 public class CyclicView extends ViewGroup {
     private final Set<OnPositionChangeListener> onPositionChangeListeners = new HashSet<>();
@@ -75,18 +75,15 @@ public class CyclicView extends ViewGroup {
      * @param position
      */
     public void setCurrentPosition(int position) {
-        int width = getMeasuredWidth();
-        boolean isViewMeasured = width != 0;
+        currentPosition = cyclicPositionAt(position);
+        boolean isViewMeasured = getMeasuredWidth() != 0;
         if (!isViewMeasured) {
             currentPosition = position;
             postCurrentPosition(position);
             return;
         }
 
-        position = cyclicPositionAt(position);
-        setOffsetXOfPosition(position);
-
-        currentPosition = position;
+        setOffsetXOfPosition(currentPosition);
         createViewAndSetIfNotExistsAround(currentPosition);
         notifyOnPositionChangeListener(currentPosition);
     }
@@ -213,14 +210,16 @@ public class CyclicView extends ViewGroup {
     }
 
     private void createViewAndSetIfNotExistsAround(int position) {
-        int previousPosition = cyclicPositionAt(position - 1);
-        int nextPosition = cyclicPositionAt(position + 1);
+        int previousPosition = position - 1;
+        int nextPosition = position + 1;
         createViewAndSetIfNotExists(previousPosition);
         createViewAndSetIfNotExists(currentPosition);
         createViewAndSetIfNotExists(nextPosition);
     }
 
     private void createViewAndSetIfNotExists(int position) {
+        position = cyclicPositionAt(position);
+
         View view = views.get(position);
         if (view != null)
             return;
@@ -240,13 +239,14 @@ public class CyclicView extends ViewGroup {
         if (!cacheAvailable)
             return;
 
-        int previousPosition = cyclicPositionAt(currentPosition - maxCachedItems);
-        int nextPosition = cyclicPositionAt(currentPosition + maxCachedItems);
+        int previousPosition = currentPosition - maxCachedItems;
+        int nextPosition = currentPosition + maxCachedItems;
         removeCachedViewIfExists(previousPosition);
         removeCachedViewIfExists(nextPosition);
     }
 
     private void removeCachedViewIfExists(int position) {
+        position = cyclicPositionAt(position);
         View view = views.get(position);
         if (view != null) {
             adapter.removeView(position, view);
@@ -310,24 +310,14 @@ public class CyclicView extends ViewGroup {
     }
 
     private int calculateScrollToPosition(float factor) {
-        switch (calculateScrollDirection(factor)) {
-            case -1:
-                return currentPosition - 1;
-            case 1:
-                return currentPosition + 1;
-        }
-
-        return currentPosition;
-    }
-
-    private int calculateScrollDirection(float factor) {
         int width = getMeasuredWidth();
         float currentPositionOffsetX = -(width * currentPosition);
 
         if (Math.abs(offsetX - currentPositionOffsetX) < factor)
-            return 0;
-        else
-            return offsetX > currentPositionOffsetX ? -1 : 1;
+            return currentPosition;
+
+        int scrollDirection = offsetX > currentPositionOffsetX ? -1 : 1;
+        return currentPosition + scrollDirection;
     }
 
     private void createViewsList() {
@@ -347,6 +337,7 @@ public class CyclicView extends ViewGroup {
     }
 
     private Bitmap captureImageFromView(int position) {
+        position = cyclicPositionAt(position);
         View view = views.get(position);
         if (view == null)
             return null;

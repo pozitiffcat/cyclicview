@@ -5,7 +5,7 @@ import android.view.View;
 /**
  * A cyclic adapter interface for cyclic view pager
  *
- * @author Malchenko Alexey <pozitiffcat2@gmal.com>
+ * @author Malchenko Alexey "pozitiffcat2@gmail.com"
  */
 public abstract class CyclicAdapter {
     /**
