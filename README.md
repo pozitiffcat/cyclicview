@@ -1,6 +1,9 @@
 # Сircual scrolling view implementation for Android instead ViewPager hacks
 
-###Features
+### How it looks
+![](https://github.com/pozitiffcat/cyclicview/blob/master/test-video.gif)
+
+### Features
 - Сircual scrolling views
 - Can use fragments from support repository
 - Can implement custom adapter
