@@ -321,6 +321,7 @@ public class CyclicView extends ViewGroup {
     }
 
     private void createViewsList() {
+        views.clear();
         views.addAll(Collections.<View>nCopies(adapter.getItemsCount(), null));
     }
 
