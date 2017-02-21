@@ -1,16 +1,16 @@
 # Сircual scrolling view implementation for Android instead ViewPager hacks
 
-### How it looks
+### How does it look
 ![](https://github.com/pozitiffcat/cyclicview/blob/master/test-video.gif)
 
 ### Features
 - Сircual scrolling views
-- Can use fragments from support repository
-- Can implement custom adapter
-- Does not duplicate first and last views as analogues, uses bitmap variants instead
+- Possibility to use fragments from support repository
+- Possibility to implement custom adapter
+- First and last views are not duplicated, the view uses bitmap variants instead
 - Сircual scrolling works with 1, 2 or more views
 - Scrolling stops if next element is null
-- View caching, remove old views for free memory
+- View cache works, it removes old views for free memory
 
 ### Simple example
 After create CyclicView your should set adapter
