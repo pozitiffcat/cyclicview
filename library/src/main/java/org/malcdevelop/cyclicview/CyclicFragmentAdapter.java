@@ -36,7 +36,8 @@ public abstract class CyclicFragmentAdapter extends CyclicAdapter {
     @Override
     public void removeView(int position, View view) {
         FrameLayout frameLayout = (FrameLayout) view;
-        Fragment fragment = fragmentManager.findFragmentById(frameLayout.getId());
+        int removingId = frameLayout.getId();
+        Fragment fragment = fragmentManager.findFragmentById(removingId);
 
         if (fragment != null)
             fragmentManager.beginTransaction().remove(fragment).commit();

@@ -22,6 +22,7 @@ import java.util.Set;
  * @author Malchenko Alexey "pozitiffcat2@gmail.com"
  */
 public class CyclicView extends ViewGroup {
+    private static final float TOUCH_SLOP_SCALE = 3.0f;
     private final Set<OnPositionChangeListener> onPositionChangeListeners = new HashSet<>();
     private int currentPosition;
     private ImageView lastViewRenderImageView;
@@ -33,6 +34,7 @@ public class CyclicView extends ViewGroup {
     private boolean isScrolling;
     private int touchSlop;
     private int maxCacheAroundCurrent = 3;
+    private int changePositionFactor = 3;
 
     public CyclicView(Context context) {
         super(context);
@@ -63,6 +65,9 @@ public class CyclicView extends ViewGroup {
      * @param adapter
      */
     public void setAdapter(CyclicAdapter adapter) {
+        if (this.adapter != null)
+            removeAllCached();
+
         this.adapter = adapter;
         if (adapter.getItemsCount() != 0) {
             createViewsList();
@@ -109,6 +114,14 @@ public class CyclicView extends ViewGroup {
     }
 
     /**
+     * swipe length for switch position (screen width divide by factor)
+     * @param factor
+     */
+    public void setChangePositionFactor(int factor) {
+        this.changePositionFactor = factor;
+    }
+
+    /**
      * create views around current if they is null
      * uses adapter for create views
      */
@@ -135,6 +148,9 @@ public class CyclicView extends ViewGroup {
 
     @Override
     protected void onLayout(boolean c, int l, int t, int r, int b) {
+        if (!isScrolling)
+            setOffsetXOfPosition(getCurrentPosition(), false);
+
         int viewsCount = views.size();
         layoutViewOnPosition(lastViewRenderImageView, -1);
         layoutViewOnPosition(firstViewRenderImageView, viewsCount);
@@ -165,7 +181,7 @@ public class CyclicView extends ViewGroup {
                     return true;
 
                 final int xDiff = (int) Math.abs(event.getX() - touchX);
-                if (xDiff > touchSlop) {
+                if (xDiff > touchSlop * TOUCH_SLOP_SCALE) {
                     isScrolling = true;
                     return true;
                 }
@@ -239,10 +255,15 @@ public class CyclicView extends ViewGroup {
         if (!cacheAvailable)
             return;
 
-        int previousPosition = currentPosition - maxCachedItems;
-        int nextPosition = currentPosition + maxCachedItems;
+        int previousPosition = currentPosition - maxCacheAroundCurrent;
+        int nextPosition = currentPosition + maxCacheAroundCurrent;
         removeCachedViewIfExists(previousPosition);
         removeCachedViewIfExists(nextPosition);
+    }
+
+    private void removeAllCached() {
+        for (int i = 0; i < views.size(); ++i)
+            removeCachedViewIfExists(i);
     }
 
     private void removeCachedViewIfExists(int position) {
@@ -263,12 +284,21 @@ public class CyclicView extends ViewGroup {
     }
 
     private void setOffsetXOfPosition(int position) {
+        setOffsetXOfPosition(position, true);
+    }
+
+    private void setOffsetXOfPosition(int position, boolean withRequestLayout) {
         int width = getMeasuredWidth();
         offsetX = -width * (position);
-        requestLayout();
+
+        if (withRequestLayout)
+            requestLayout();
     }
 
     private boolean canOffsetX(float deltaX) {
+        if (adapter.getItemsCount() <= 1)
+            return false;
+
         offsetX += deltaX;
         int toPosition = cyclicPositionAt(calculateScrollToPosition(0));
         View toView = views.get(toPosition);
@@ -278,7 +308,7 @@ public class CyclicView extends ViewGroup {
 
     private void animateScrollToCloserPosition() {
         final int width = getMeasuredWidth();
-        final int toPosition = calculateScrollToPosition(width / 3.0f);
+        final int toPosition = calculateScrollToPosition(width / (float) changePositionFactor);
         final float startX = offsetX;
         final float stopX = -(toPosition * width);
 
@@ -293,6 +323,7 @@ public class CyclicView extends ViewGroup {
 
                 if (frame >= 1.0f) {
                     setCurrentPosition(toPosition);
+                    isScrolling = false;
                 } else {
                     post(this);
                 }
@@ -354,7 +385,11 @@ public class CyclicView extends ViewGroup {
     }
 
     public void removeOnPositionChangeListener(OnPositionChangeListener listener) {
-        onPositionChangeListeners.add(listener);
+        onPositionChangeListeners.remove(listener);
+    }
+
+    public void removeAllListeners() {
+        onPositionChangeListeners.clear();
     }
 
     private void notifyOnPositionChangeListener(int position) {
