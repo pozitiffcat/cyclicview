@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
-###Simple example with support fragments
+### Simple example with support fragments
 
 ```java
 public class MainActivity extends AppCompatActivity {
@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
-###Available methods: 
+### Available methods: 
 `setAdapter(CyclicAdapter)` for setup a adapter 
 
 `setCurrentPosition(int)` for switch current position 
@@ -99,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
 `refreshViewsAroundCurrent()` for reload null views around current position 
 
 `addOnPositionChangeListener(CyclicView.OnPositionChangeListener)` for observe CyclicView on position change 
+
+`setChangePositionFactor(int)` for change sensitivity factor
 
 
 ### How add to project
@@ -114,7 +116,7 @@ allprojects {
 and:
 ```gradle
 dependencies {
-    compile 'com.github.pozitiffcat:cyclicview:1.0.2'
+    compile 'com.github.pozitiffcat:cyclicview:1.0.3'
 }
 ```
 
