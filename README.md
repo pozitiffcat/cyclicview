@@ -11,7 +11,7 @@
 - Сircual scrolling works with 1, 2 or more views
 - Scrolling stops if next element is null
 - View cache works, it removes old views for free memory
-- You can change scroll sensitivity using factor
+- You can change scroll animation speed using factor
 
 ### Simple example
 After create CyclicView your should set adapter
@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
 `addOnPositionChangeListener(CyclicView.OnPositionChangeListener)` for observe CyclicView on position change 
 
-`setChangePositionFactor(int)` for change sensitivity factor
+`setChangePositionFactor(int)` for change scroll factor
 
 
 ### How add to project
@@ -116,7 +116,7 @@ allprojects {
 and:
 ```gradle
 dependencies {
-    compile 'com.github.pozitiffcat:cyclicview:1.0.3'
+    compile 'com.github.pozitiffcat:cyclicview:1.0.3-1'
 }
 ```
 
