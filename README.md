@@ -11,6 +11,7 @@
 - Сircual scrolling works with 1, 2 or more views
 - Scrolling stops if next element is null
 - View cache works, it removes old views for free memory
+- You can change scroll sensitivity using factor
 
 ### Simple example
 After create CyclicView your should set adapter
