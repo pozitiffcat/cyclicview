@@ -199,18 +199,29 @@ public class CyclicView extends ViewGroup {
             case MotionEvent.ACTION_DOWN:
                 touchX = event.getX();
                 prepareFirstAndLastImages();
+                isScrolling = false;
                 return true;
             case MotionEvent.ACTION_MOVE:
-                float eX = event.getX();
-                float deltaX = eX - touchX;
-                touchX = eX;
+                final int xDiff = (int) Math.abs(event.getX() - touchX);
+                final float eX = event.getX();
+                
+                if (xDiff > touchSlop * TOUCH_SLOP_SCALE) {
+                    touchX = eX;
+                    isScrolling = true;
+                }
 
-                if (canOffsetX(deltaX))
-                    offsetX += deltaX;
+                if (isScrolling) {
+                    float deltaX = eX - touchX;
+                    touchX = eX;
 
-                requestLayout();
+                    if (canOffsetX(deltaX))
+                        offsetX += deltaX;
+
+                    requestLayout();
+                }
                 return true;
             case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
                 animateScrollToCloserPosition();
                 return true;
         }
