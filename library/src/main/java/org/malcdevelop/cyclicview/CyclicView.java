@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
@@ -22,7 +21,6 @@ import java.util.Set;
  * @author Malchenko Alexey "pozitiffcat2@gmail.com"
  */
 public class CyclicView extends ViewGroup {
-    private static final float TOUCH_SLOP_SCALE = 3.0f;
     private final Set<OnPositionChangeListener> onPositionChangeListeners = new HashSet<>();
     private int currentPosition;
     private ImageView lastViewRenderImageView;
@@ -31,10 +29,10 @@ public class CyclicView extends ViewGroup {
     private CyclicAdapter adapter;
     private float offsetX;
     private float touchX;
+    private float touchY;
     private boolean isScrolling;
-    private int touchSlop;
     private int maxCacheAroundCurrent = 3;
-    private int changePositionFactor = 3;
+    private int changePositionFactor = 6;
 
     public CyclicView(Context context) {
         super(context);
@@ -47,7 +45,6 @@ public class CyclicView extends ViewGroup {
     }
 
     private void init() {
-        retrieveTouchSlop();
         createRenderImageViews();
     }
 
@@ -107,7 +104,7 @@ public class CyclicView extends ViewGroup {
      * @return calculated position eg. last position instead -1
      */
     public int cyclicPositionAt(int position) {
-        int itemsCount = adapter.getItemsCount();
+        int itemsCount = views.size();
         position = position < 0 ? itemsCount + position : position;
         position = position >= itemsCount ? position - itemsCount : position;
         return position;
@@ -173,6 +170,7 @@ public class CyclicView extends ViewGroup {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 touchX = event.getX();
+                touchY = event.getY();
                 prepareFirstAndLastImages();
                 isScrolling = false;
                 break;
@@ -180,8 +178,14 @@ public class CyclicView extends ViewGroup {
                 if (isScrolling)
                     return true;
 
+                final int yDiff = (int) Math.abs(event.getY() - touchY);
+                if (yDiff > getMeasuredHeight() / (float) changePositionFactor) {
+                    isScrolling = false;
+                    return false;
+                }
+
                 final int xDiff = (int) Math.abs(event.getX() - touchX);
-                if (xDiff > touchSlop * TOUCH_SLOP_SCALE) {
+                if (xDiff > getMeasuredWidth() / (float) changePositionFactor) {
                     isScrolling = true;
                     return true;
                 }
@@ -204,8 +208,8 @@ public class CyclicView extends ViewGroup {
             case MotionEvent.ACTION_MOVE:
                 final int xDiff = (int) Math.abs(event.getX() - touchX);
                 final float eX = event.getX();
-                
-                if (xDiff > touchSlop * TOUCH_SLOP_SCALE) {
+
+                if (xDiff > getMeasuredWidth() / (float) changePositionFactor) {
                     touchX = eX;
                     isScrolling = true;
                 }
@@ -365,11 +369,6 @@ public class CyclicView extends ViewGroup {
     private void createViewsList() {
         views.clear();
         views.addAll(Collections.<View>nCopies(adapter.getItemsCount(), null));
-    }
-
-    private void retrieveTouchSlop() {
-        ViewConfiguration vc = ViewConfiguration.get(getContext());
-        touchSlop = vc.getScaledTouchSlop();
     }
 
     private void createRenderImageViews() {
