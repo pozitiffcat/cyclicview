@@ -116,7 +116,7 @@ allprojects {
 and:
 ```gradle
 dependencies {
-    compile 'com.github.pozitiffcat:cyclicview:1.0.3-1'
+    compile 'com.github.pozitiffcat:cyclicview:1.0.4'
 }
 ```
 
